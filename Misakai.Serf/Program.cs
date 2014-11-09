@@ -14,7 +14,7 @@ namespace Misakai.Serf
             var authKey = GetKey();
             var client = new SerfClient();
             client.Connected += OnConnect;
-            client.Connect(IPAddress.Parse("130.211.86.34"), 7373, "test");
+            client.Connect(IPAddress.Parse("130.211.86.34"), 7373, "xxxx");
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
@@ -26,7 +26,7 @@ namespace Misakai.Serf
             {
                 foreach (var member in members.Members)
                 {
-                    Console.WriteLine("{0}:{1} {2}", member.Addr, member.Port, member.Name);
+                    Console.WriteLine("{0}:{1} {2} ({3})", member.Addr, member.Port, member.Name, member.Status);
                     foreach(var tag in member.Tags)
                     {
                         Console.WriteLine("   tag: {0} = {1}", tag.Key, tag.Value);
