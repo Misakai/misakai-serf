@@ -49,7 +49,7 @@ namespace Misakai.Serf
     /// </summary>
     public struct AuthRequest
     {
-        string AuthKey;
+        public string AuthKey;
     }
 
     /// <summary>

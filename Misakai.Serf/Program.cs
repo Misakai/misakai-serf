@@ -11,16 +11,12 @@ namespace Misakai.Serf
     {
         static void Main(string[] args)
         {
-            // 7946
-            var endpoint = new IPEndPoint(IPAddress.Parse("130.211.86.34"), 7373);
-
+            var authKey = GetKey();
             var client = new SerfClient();
             client.Connected += OnConnect;
-      
-            client.Connect(endpoint, null, default(TimeSpan));
+            client.Connect(IPAddress.Parse("130.211.86.34"), 7373, "test");
 
-
-
+            Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
@@ -37,6 +33,12 @@ namespace Misakai.Serf
                     }
                 }
             });
+        }
+
+        static string GetKey()
+        {
+            var key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            return Convert.ToBase64String(key);
         }
     }
 }

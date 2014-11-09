@@ -49,10 +49,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerfHandler.cs" />
     <Compile Include="SerfClient.cs" />
-    <Compile Include="Serializers\IPAddressSerializer.cs" />
+    <Compile Include="SerfSerializers.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

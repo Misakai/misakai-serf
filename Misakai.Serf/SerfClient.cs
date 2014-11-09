@@ -20,6 +20,7 @@ namespace Misakai.Serf
     /// </summary>
     public class SerfClient
     {
+        #region Private Fields
         private TcpClient Client;
         private IPEndPoint Endpoint;
         private NetworkStream Stream;
@@ -44,41 +45,9 @@ namespace Misakai.Serf
             get; 
             private set;
         }
+        #endregion
 
-        /// <summary>
-        /// Connects to the remote agent and starts listening to events.
-        /// </summary>
-        public async void Connect(IPEndPoint endpoint, string authKey, TimeSpan timeout)
-        {
-            // Remember the endpoint
-            this.Endpoint = endpoint;
-
-            // Set a default timeout
-            if (timeout == default(TimeSpan))
-                timeout = TimeSpan.FromSeconds(10);
-
-            // Create a TCP Client
-            this.Client = new TcpClient();
-            this.Client.SendTimeout = (int)timeout.TotalMilliseconds;
-            this.Client.ReceiveTimeout = (int)timeout.TotalMilliseconds;
-
-            // Connect to the remote 
-            await this.Client.ConnectAsync(this.Endpoint.Address, this.Endpoint.Port);
-
-            // Get the network stream for reading & writing
-            this.Stream = this.Client.GetStream();
-
-            // Setup the handshake
-            this.Handshake();
-
-            // Invoke connected event
-            if (this.Connected != null)
-                this.Connected(this);
-
-            // Start receiving
-            await this.Receive();
-        }
-
+        #region Private Members
         /// <summary>
         /// Listens and reads from the socket.
         /// </summary>
@@ -132,6 +101,10 @@ namespace Misakai.Serf
         {
             var packer = MessagePackSerializer.Get<ResponseHeader>();
             var header = packer.Unpack(stream);
+            if (!String.IsNullOrEmpty(header.Error))
+            {
+                Console.WriteLine("Error: " + header.Error);
+            }
 
             // Seek for a handler of the sequence (if any)
             for (int i = 0; i < this.Handlers.Count; ++i )
@@ -149,8 +122,6 @@ namespace Misakai.Serf
             }
         }
 
-
-        #region Private Members
         /// <summary>
         /// GetSeq returns the next sequence number in a safe manner.
         /// </summary>
@@ -242,7 +213,64 @@ namespace Misakai.Serf
                 .Register<IPAddress>(new IPAddressSerializer(SerfClient.Context));
         }
         #endregion
+        
+        #region Public Members
+                /// <summary>
+        /// Connects to the remote agent and starts listening to events.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to connect to.</param>
+        /// <param name="authKey">The authentication key to use after handshake.</param>
+        /// <param name="timeout">The default timeout to use for send & receive operations.</param>
+        public async void Connect(IPAddress address, int port = 7373, string authKey = null, TimeSpan timeout = default(TimeSpan))
+        {
+            var endpoint = new IPEndPoint(address, port);
+            this.Connect(endpoint, authKey, timeout);
+        }
 
+        /// <summary>
+        /// Connects to the remote agent and starts listening to events.
+        /// </summary>
+        /// <param name="endpoint">The endpoint to connect to.</param>
+        /// <param name="authKey">The authentication key to use after handshake.</param>
+        /// <param name="timeout">The default timeout to use for send & receive operations.</param>
+        public async void Connect(IPEndPoint endpoint, string authKey = null, TimeSpan timeout = default(TimeSpan))
+        {
+            // Remember the endpoint
+            this.Endpoint = endpoint;
+
+            // Set a default timeout
+            if (timeout == default(TimeSpan))
+                timeout = TimeSpan.FromSeconds(10);
+
+            // Create a TCP Client
+            this.Client = new TcpClient();
+            this.Client.SendTimeout = (int)timeout.TotalMilliseconds;
+            this.Client.ReceiveTimeout = (int)timeout.TotalMilliseconds;
+
+            // Connect to the remote 
+            await this.Client.ConnectAsync(this.Endpoint.Address, this.Endpoint.Port);
+
+            // Get the network stream for reading & writing
+            this.Stream = this.Client.GetStream();
+
+            // Setup the handshake
+            this.Handshake();
+
+            // If we need to authenticate, do that
+            if(authKey != null)
+                this.Authenticate(authKey);
+
+            // Invoke connected event
+            if (this.Connected != null)
+                this.Connected(this);
+
+            // Start receiving
+            await this.Receive();
+        }
+
+        /// <summary>
+        /// Handshakes with the remote agent.
+        /// </summary>
         public void Handshake()
         {
             // Construct a new request header.
@@ -260,6 +288,9 @@ namespace Misakai.Serf
             this.Send<HandshakeRequest>(header, req);
         }
 
+        /// <summary>
+        /// Retrieves the list of members.
+        /// </summary>
         public void GetMembers(Action<MembersResponse> onComplete)
         {
             // Construct a new request header.
@@ -269,10 +300,32 @@ namespace Misakai.Serf
                 Seq = this.GetSeq()
             };
 
-
             // Send the request
             this.Send<MembersResponse>(header, onComplete);
         }
+
+        /// <summary>
+        /// Authenticates with the provided key.
+        /// </summary>
+        /// <param name="authKey">The key to use for authentication.</param>
+        public void Authenticate(string authKey)
+        {
+            // Construct a new request header.
+            var header = new RequestHeader()
+            {
+                Command = SerfCommand.Auth,
+                Seq = this.GetSeq()
+            };
+
+            var req = new AuthRequest()
+            {
+                AuthKey = authKey
+            };
+
+            // Send the request
+            this.Send<AuthRequest>(header, req);
+        }
+        #endregion
 
     }
 }
